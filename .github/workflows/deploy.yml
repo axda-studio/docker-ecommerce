@@ -20,3 +20,4 @@ jobs:
                       cd ~/docker-ecommerce
                       git pull origin main
                       docker compose up --build -d
+                      docker compose restart nginx
