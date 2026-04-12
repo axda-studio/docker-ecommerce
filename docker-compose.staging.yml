@@ -1,0 +1,41 @@
+services:                                                                                                                                                           
+  postgres-staging:                                                                                                                                                 
+    image: postgres:17-alpine                                                                                                                                    
+    restart: always                                                                                                                                                 
+    environment:                                                                                                                                                    
+      POSTGRES_DB: ${POSTGRES_DB}                                                                                                                                   
+      POSTGRES_USER: ${POSTGRES_USER}                                                                                                                               
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}                                                                                                                       
+    volumes:                                                                                                                                                        
+      - postgres_staging_data:/var/lib/postgresql/data                                                                                                              
+                                                                                                                                                                    
+  backend-staging:                                                                                                                                                  
+    build: ./backend                                                                                                                                             
+    restart: always                                                                                                                                                 
+    environment:                                                                                                                                                    
+      DATABASE_CLIENT: ${DATABASE_CLIENT}                                                                                                                           
+      DATABASE_HOST: postgres-staging                                                                                                                               
+      DATABASE_PORT: 5432                                                                                                                                           
+      DATABASE_NAME: ${DATABASE_NAME}                                                                                                                               
+      DATABASE_USERNAME: ${DATABASE_USERNAME}                                                                                                                       
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}                                                                                                                       
+      APP_KEYS: ${APP_KEYS}                                                                                                                                         
+      API_TOKEN_SALT: ${API_TOKEN_SALT}                                                                                                                             
+      ADMIN_JWT_SECRET: ${ADMIN_JWT_SECRET}                                                                                                                         
+      TRANSFER_TOKEN_SALT: ${TRANSFER_TOKEN_SALT}                                                                                                                   
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}                                                                                                                             
+      JWT_SECRET: ${JWT_SECRET}                                                                                                                                     
+    depends_on:                                                                                                                                                     
+      - postgres-staging                                                                                                                                            
+                                                                                                                                                                    
+  frontend-staging:                                                                                                                                                 
+    build:                                                                                                                                                          
+      context: ./frontend                                                                                                                                           
+      args:                                                                                                                                                      
+        NEXT_PUBLIC_STRAPI_URL: https://cms-staging.axda-studio.fr                                                                                                  
+    restart: always                                                                                                                                                 
+    depends_on:                                                                                                                                                     
+      - backend-staging                                                                                                                                             
+                                                                                                                                                                    
+volumes:                                                                                                                                                         
+  postgres_staging_data:  
