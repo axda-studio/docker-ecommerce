@@ -1,23 +1,58 @@
-name: Deploy to VPS
+name: Deploy
 
 on:
-    push:
-        branches:
-            - main
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
 
 jobs:
-    deploy:
-        runs-on: ubuntu-latest
+  deploy-staging:
+    if: |
+      (github.event_name == 'pull_request' && github.event.pull_request.merged == true) ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy staging via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd ~/docker-ecommerce
+            git pull origin main
+            docker compose -f docker-compose.staging.yml --env-file .env.staging up --build -d
+            docker compose restart nginx
 
-        steps:
-            - name: Deploy via SSH
-              uses: appleboy/ssh-action@v1
-              with:
-                  host: ${{ secrets.VPS_HOST }}
-                  username: ${{ secrets.VPS_USER }}
-                  key: ${{ secrets.VPS_SSH_KEY }}
-                  script: |
-                      cd ~/docker-ecommerce
-                      git pull origin main
-                      docker compose up --build -d
-                      docker compose restart nginx
+  deploy-production:
+    if: |
+      startsWith(github.ref, 'refs/tags/v') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy production via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd ~/docker-ecommerce
+            git fetch --tags
+            git checkout main
+            git pull origin main
+            docker compose up --build -d
+            docker compose restart nginx
